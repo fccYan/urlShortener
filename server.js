@@ -37,18 +37,41 @@ app.get("/api/hello", function (req, res) {
 app.post("/api/shorturl/new", (req, res, next) => {
 	const url = req.body.url;
 	if (url) {
-		dns.lookup(url, (err) => {
+		dns.lookup(url.replace("https://", "").replace("http://", ""), (err) => {
 			if (err) {
 				res.json({ error: "invalid URL" });
 				return next(err);
 			}
-			const short_url = new ShortUrl({ original_url: ''});
-			short_url.save();
-			res.json(short_url);
-			return next();
+			ShortUrl.create({ original_url: url}, function(err, short_url){
+				if(err) {
+					res.json({error: "Error while shortening url."});
+					return next(err);
+				}
+				let obj = {original_url: url, short_url: short_url.short_url};
+				res.json(obj);
+				return next();
+			});	
 		})
 	} else {
 		res.json({ error: "invalid URL" });
+	}
+});
+
+app.get("/api/shorturl/:id", (req, res, next)=>{
+	const id = req.params.id;
+	if(!isNaN(id)) {
+		ShortUrl.findOne({short_url: id}, '-_id')
+		.then((url)=>{
+			res.redirect(url.original_url);
+			return next();
+		})	
+		.catch((err)=>{
+			res.json(404, {error: "Id not found."});
+			return next(err);
+		});
+	} else {
+		res.json(404, {error: "Id is not a number."})
+		return next();
 	}
 });
 
