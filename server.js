@@ -62,7 +62,8 @@ app.get("/api/shorturl/:id", (req, res, next)=>{
 	if(!isNaN(id)) {
 		ShortUrl.findOne({short_url: id}, '-_id')
 		.then((url)=>{
-			res.redirect(url.original_url);
+			const treated_url = "http://" + url.original_url.replace("htpp://","").replace("https://", "");
+			res.redirect(treated_url);
 			return next();
 		})	
 		.catch((err)=>{
@@ -73,6 +74,17 @@ app.get("/api/shorturl/:id", (req, res, next)=>{
 		res.json(404, {error: "Id is not a number."})
 		return next();
 	}
+});
+
+app.get("/api/shorturl/", (req, res, next) =>{
+	ShortUrl.find({}, "-_id -__v").then((shorturls) =>{
+		res.json(shorturls);
+		return next();
+	})
+	.catch((err)=>{
+		res.json(404, {error: "Error while finding urls."});
+		return next(err);
+	})
 });
 
 app.listen(port, function () {
